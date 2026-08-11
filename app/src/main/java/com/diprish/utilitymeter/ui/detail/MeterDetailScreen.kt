@@ -36,19 +36,26 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diprish.utilitymeter.data.Meter
 import com.diprish.utilitymeter.data.MeterReading
+import com.diprish.utilitymeter.ui.components.ReadingPhotoViewer
+import com.diprish.utilitymeter.ui.components.ReadingThumbnail
 import com.diprish.utilitymeter.ui.components.UsageChart
 import com.diprish.utilitymeter.ui.formatDate
+import com.diprish.utilitymeter.ui.formatDateTime
 import com.diprish.utilitymeter.ui.formatNumber
 import com.diprish.utilitymeter.ui.meterVisual
 
@@ -62,6 +69,7 @@ fun MeterDetailScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val meter = state.meter
+    var viewerReading by remember { mutableStateOf<MeterReading?>(null) }
 
     Scaffold(
         topBar = {
@@ -104,11 +112,6 @@ fun MeterDetailScreen(
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatTile(
-                        label = "Readings",
-                        value = state.readings.size.toString(),
-                        modifier = Modifier.weight(1f),
-                    )
-                    StatTile(
                         label = "Total used",
                         value = "${formatNumber(state.totalUsage)} ${meter.unit}",
                         modifier = Modifier.weight(1f),
@@ -124,6 +127,11 @@ fun MeterDetailScreen(
                 Card {
                     Column(Modifier.padding(16.dp)) {
                         Text("Usage over time", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Consumption per period (${meter.unit})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         UsageChart(
                             bars = state.usageBars,
                             unit = meter.unit,
@@ -156,10 +164,21 @@ fun MeterDetailScreen(
                         delta = state.readingDeltas[reading.id],
                         accent = accent,
                         onEdit = { onEditReading(meter.id, reading.id) },
+                        onOpenPhoto = { viewerReading = reading },
                         onDelete = { viewModel.deleteReading(reading) },
                     )
                 }
             }
+        }
+    }
+
+    viewerReading?.let { reading ->
+        reading.photoPath?.let { path ->
+            ReadingPhotoViewer(
+                path = path,
+                dateText = formatDateTime(reading.timestamp),
+                onDismiss = { viewerReading = null },
+            )
         }
     }
 }
@@ -280,13 +299,24 @@ private fun ReadingRow(
     delta: Double?,
     accent: Color,
     onEdit: () -> Unit,
+    onOpenPhoto: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onEdit)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (reading.photoPath != null) {
+                ReadingThumbnail(
+                    path = reading.photoPath,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(onClick = onOpenPhoto),
+                )
+                Spacer(Modifier.width(12.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(
                     "${formatNumber(reading.value)} $unit",
