@@ -29,5 +29,10 @@ data class MeterReading(
     val timestamp: Long = System.currentTimeMillis(),
     /** Absolute path to the captured photo on device storage, if any. */
     val photoPath: String? = null,
+    /**
+     * When the photo was actually snapped. Immutable, unlike [timestamp] which
+     * is the user-editable reading date. Null when there is no photo.
+     */
+    val photoTakenAt: Long? = null,
     val note: String = "",
 )

@@ -176,7 +176,9 @@ fun MeterDetailScreen(
         reading.photoPath?.let { path ->
             ReadingPhotoViewer(
                 path = path,
-                dateText = formatDateTime(reading.timestamp),
+                // Prefer the real capture time; fall back to the reading date
+                // for photos saved before capture times were recorded.
+                dateText = formatDateTime(reading.photoTakenAt ?: reading.timestamp),
                 onDismiss = { viewerReading = null },
             )
         }

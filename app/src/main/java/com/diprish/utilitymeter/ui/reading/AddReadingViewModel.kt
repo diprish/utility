@@ -26,6 +26,8 @@ import java.io.File
 
 data class AddReadingState(
     val photoPath: String? = null,
+    /** Wall-clock time the photo was captured; null when there is no photo. */
+    val photoTakenAt: Long? = null,
     val valueText: String = "",
     val note: String = "",
     /** The reading's date/time. Defaults to now; user can change the date. */
@@ -68,6 +70,7 @@ class AddReadingViewModel(
                         note = existing?.note.orEmpty(),
                         timestamp = existing?.timestamp ?: it.timestamp,
                         photoPath = existing?.photoPath,
+                        photoTakenAt = existing?.photoTakenAt,
                     )
                 }
             } else {
@@ -101,7 +104,14 @@ class AddReadingViewModel(
 
     /** Called after the camera writes a photo. Kicks off OCR on the image. */
     fun onPhotoCaptured(context: Context, file: File) {
-        _state.update { it.copy(photoPath = file.absolutePath, ocrRunning = true, ocrMessage = null) }
+        _state.update {
+            it.copy(
+                photoPath = file.absolutePath,
+                photoTakenAt = System.currentTimeMillis(),
+                ocrRunning = true,
+                ocrMessage = null,
+            )
+        }
         viewModelScope.launch {
             try {
                 val result = MeterOcr.recognize(context, Uri.fromFile(file))
@@ -128,7 +138,7 @@ class AddReadingViewModel(
     }
 
     fun retakePhoto() {
-        _state.update { it.copy(photoPath = null, ocrMessage = null, ocrRunning = false) }
+        _state.update { it.copy(photoPath = null, photoTakenAt = null, ocrMessage = null, ocrRunning = false) }
     }
 
     fun save() {
@@ -143,6 +153,7 @@ class AddReadingViewModel(
                 value = value,
                 timestamp = current.timestamp,
                 photoPath = current.photoPath,
+                photoTakenAt = current.photoTakenAt,
                 note = current.note.trim(),
             )
             if (readingId >= 0) repository.updateReading(reading) else repository.addReading(reading)
