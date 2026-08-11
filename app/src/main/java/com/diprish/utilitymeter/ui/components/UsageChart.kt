@@ -36,6 +36,7 @@ fun UsageChart(
     bars: List<UsageBar>,
     unit: String,
     modifier: Modifier = Modifier,
+    barColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     if (bars.isEmpty()) {
         Text(
@@ -47,7 +48,6 @@ fun UsageChart(
         return
     }
 
-    val barColor = MaterialTheme.colorScheme.primary
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val textMeasurer = rememberTextMeasurer()
     val maxValue = max(bars.maxOf { it.value }, 0.0001)

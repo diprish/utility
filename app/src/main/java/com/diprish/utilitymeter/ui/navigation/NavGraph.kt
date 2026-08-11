@@ -13,10 +13,13 @@ import com.diprish.utilitymeter.ui.reading.AddReadingScreen
 private object Routes {
     const val METERS = "meters"
     const val METER_DETAIL = "meter/{meterId}"
-    const val ADD_READING = "meter/{meterId}/add"
+
+    /** Add/edit reading. readingId = -1 means "new reading". */
+    const val READING = "meter/{meterId}/reading?readingId={readingId}"
 
     fun detail(meterId: Long) = "meter/$meterId"
-    fun addReading(meterId: Long) = "meter/$meterId/add"
+    fun addReading(meterId: Long) = "meter/$meterId/reading?readingId=-1"
+    fun editReading(meterId: Long, readingId: Long) = "meter/$meterId/reading?readingId=$readingId"
 }
 
 @Composable
@@ -37,12 +40,21 @@ fun UtilityMeterNavGraph() {
             MeterDetailScreen(
                 onBack = { navController.popBackStack() },
                 onAddReading = { meterId -> navController.navigate(Routes.addReading(meterId)) },
+                onEditReading = { meterId, readingId ->
+                    navController.navigate(Routes.editReading(meterId, readingId))
+                },
             )
         }
 
         composable(
-            route = Routes.ADD_READING,
-            arguments = listOf(navArgument("meterId") { type = NavType.LongType }),
+            route = Routes.READING,
+            arguments = listOf(
+                navArgument("meterId") { type = NavType.LongType },
+                navArgument("readingId") {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                },
+            ),
         ) {
             AddReadingScreen(
                 onDone = { navController.popBackStack() },

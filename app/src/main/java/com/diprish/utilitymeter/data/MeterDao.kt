@@ -61,4 +61,7 @@ interface MeterDao {
 
     @Query("SELECT * FROM readings WHERE meterId = :meterId ORDER BY timestamp DESC LIMIT 1")
     suspend fun latestReading(meterId: Long): MeterReading?
+
+    @Query("SELECT * FROM readings WHERE id = :readingId")
+    suspend fun readingById(readingId: Long): MeterReading?
 }

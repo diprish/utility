@@ -28,10 +28,14 @@ data class MeterDetailState(
     /** Readings newest-first for display in the list. */
     val readings: List<MeterReading> = emptyList(),
     val usageBars: List<UsageBar> = emptyList(),
+    /** Usage since the previous reading, keyed by reading id (when computable). */
+    val readingDeltas: Map<Long, Double> = emptyMap(),
     val totalUsage: Double = 0.0,
     val averagePerDay: Double? = null,
     val loading: Boolean = true,
-)
+) {
+    val latestReading: MeterReading? get() = readings.firstOrNull()
+}
 
 class MeterDetailViewModel(
     private val repository: MeterRepository,
@@ -55,8 +59,10 @@ class MeterDetailViewModel(
     private fun buildState(meter: Meter?, readingsAsc: List<MeterReading>): MeterDetailState {
         // Usage between consecutive readings (readings arrive oldest-first).
         val bars = mutableListOf<UsageBar>()
+        val deltas = mutableMapOf<Long, Double>()
         for (i in 1 until readingsAsc.size) {
             val delta = readingsAsc[i].value - readingsAsc[i - 1].value
+            deltas[readingsAsc[i].id] = delta
             bars += UsageBar(
                 label = labelFormat.format(Date(readingsAsc[i].timestamp)),
                 // Guard against a meter reset / mis-read producing a negative bar.
@@ -77,6 +83,7 @@ class MeterDetailViewModel(
             meter = meter,
             readings = readingsAsc.reversed(),
             usageBars = recentBars,
+            readingDeltas = deltas,
             totalUsage = total,
             averagePerDay = averagePerDay,
             loading = false,

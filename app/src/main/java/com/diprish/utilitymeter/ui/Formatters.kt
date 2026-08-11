@@ -1,8 +1,10 @@
 package com.diprish.utilitymeter.ui
 
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.abs
 
 private val dateFormat = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
@@ -21,6 +23,37 @@ fun formatNumber(value: Double): String {
     } else {
         rounded.toString().trimEnd('0').trimEnd('.')
     }
+}
+
+/**
+ * Convert a local wall-clock timestamp to the UTC-midnight value that
+ * Material 3's [androidx.compose.material3.DatePicker] expects for its
+ * selection, so the picker opens on the correct calendar day.
+ */
+fun toDatePickerUtcMillis(localMillis: Long): Long {
+    val local = Calendar.getInstance().apply { timeInMillis = localMillis }
+    return Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        clear()
+        set(
+            local.get(Calendar.YEAR),
+            local.get(Calendar.MONTH),
+            local.get(Calendar.DAY_OF_MONTH),
+        )
+    }.timeInMillis
+}
+
+/**
+ * Apply a date picked in the DatePicker (UTC-midnight millis) onto an existing
+ * local timestamp, keeping that timestamp's time-of-day intact.
+ */
+fun applyDatePickerMillis(pickedUtcMillis: Long, timeSourceLocalMillis: Long): Long {
+    val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = pickedUtcMillis }
+    return Calendar.getInstance().apply {
+        timeInMillis = timeSourceLocalMillis
+        set(Calendar.YEAR, utc.get(Calendar.YEAR))
+        set(Calendar.MONTH, utc.get(Calendar.MONTH))
+        set(Calendar.DAY_OF_MONTH, utc.get(Calendar.DAY_OF_MONTH))
+    }.timeInMillis
 }
 
 /** Human-friendly elapsed time between two instants, e.g. "5 days". */

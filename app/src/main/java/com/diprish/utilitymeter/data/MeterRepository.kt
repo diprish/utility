@@ -16,6 +16,8 @@ class MeterRepository(private val dao: MeterDao) {
 
     suspend fun latestReading(meterId: Long): MeterReading? = dao.latestReading(meterId)
 
+    suspend fun reading(readingId: Long): MeterReading? = dao.readingById(readingId)
+
     suspend fun addMeter(meter: Meter): Long = dao.insertMeter(meter)
 
     suspend fun updateMeter(meter: Meter) = dao.updateMeter(meter)
