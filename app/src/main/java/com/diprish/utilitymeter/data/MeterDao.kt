@@ -14,6 +14,7 @@ data class MeterWithStats(
     val readingCount: Int,
     val latestValue: Double?,
     val latestTimestamp: Long?,
+    val latestPhotoPath: String?,
 )
 
 @Dao
@@ -36,7 +37,8 @@ interface MeterDao {
         SELECT m.*,
                COUNT(r.id) AS readingCount,
                (SELECT value FROM readings WHERE meterId = m.id ORDER BY timestamp DESC LIMIT 1) AS latestValue,
-               (SELECT timestamp FROM readings WHERE meterId = m.id ORDER BY timestamp DESC LIMIT 1) AS latestTimestamp
+               (SELECT timestamp FROM readings WHERE meterId = m.id ORDER BY timestamp DESC LIMIT 1) AS latestTimestamp,
+               (SELECT photoPath FROM readings WHERE meterId = m.id ORDER BY timestamp DESC LIMIT 1) AS latestPhotoPath
         FROM meters m
         LEFT JOIN readings r ON r.meterId = m.id
         GROUP BY m.id
