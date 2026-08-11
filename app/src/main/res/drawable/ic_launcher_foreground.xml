@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Meter gauge glyph, centred within the adaptive icon safe zone -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,32c-13.8,0 -25,11.2 -25,25c0,4.6 1.2,8.9 3.4,12.6l6.9,-4c-1.4,-2.5 -2.3,-5.5 -2.3,-8.6c0,-9.4 7.6,-17 17,-17s17,7.6 17,17c0,3.1 -0.8,6.1 -2.3,8.6l6.9,4C77.8,65.9 79,61.6 79,57C79,43.2 67.8,32 54,32z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,57m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M53,40l2,0l0.8,16l-3.6,0z" />
+</vector>
