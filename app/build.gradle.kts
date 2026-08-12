@@ -85,6 +85,11 @@ dependencies {
     // Drag-to-reorder for the meter list
     implementation(libs.reorderable)
 
+    // Google Drive backup: OAuth authorization, HTTP, background scheduling
+    implementation(libs.play.services.auth)
+    implementation(libs.okhttp)
+    implementation(libs.androidx.work.runtime.ktx)
+
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

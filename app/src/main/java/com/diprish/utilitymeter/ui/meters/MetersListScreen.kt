@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Card
@@ -67,6 +68,7 @@ import org.burnoutcrew.reorderable.reorderable
 @Composable
 fun MetersListScreen(
     onOpenMeter: (Long) -> Unit,
+    onOpenBackup: () -> Unit,
     viewModel: MetersViewModel = viewModel(factory = MetersViewModel.Factory),
 ) {
     val meters by viewModel.meters.collectAsState()
@@ -85,7 +87,16 @@ fun MetersListScreen(
     )
 
     Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("Utility Meter") }) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Utility Meter") },
+                actions = {
+                    IconButton(onClick = onOpenBackup) {
+                        Icon(Icons.Default.CloudSync, contentDescription = "Backup & restore")
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 text = { Text("Add meter") },

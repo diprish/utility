@@ -31,4 +31,13 @@ class MeterRepository(private val dao: MeterDao) {
     suspend fun updateReading(reading: MeterReading) = dao.updateReading(reading)
 
     suspend fun deleteReading(reading: MeterReading) = dao.deleteReading(reading)
+
+    // ---- Backup / restore ----
+
+    suspend fun allMeters(): List<Meter> = dao.allMeters()
+
+    suspend fun allReadings(): List<MeterReading> = dao.allReadings()
+
+    suspend fun replaceAll(meters: List<Meter>, readings: List<MeterReading>) =
+        dao.replaceAll(meters, readings)
 }

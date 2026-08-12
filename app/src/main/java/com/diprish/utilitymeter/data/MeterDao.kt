@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -69,4 +70,30 @@ interface MeterDao {
 
     @Query("SELECT * FROM readings WHERE id = :readingId")
     suspend fun readingById(readingId: Long): MeterReading?
+
+    // ---- Backup / restore ----
+
+    @Query("SELECT * FROM meters")
+    suspend fun allMeters(): List<Meter>
+
+    @Query("SELECT * FROM readings")
+    suspend fun allReadings(): List<MeterReading>
+
+    @Insert
+    suspend fun insertMeters(meters: List<Meter>)
+
+    @Insert
+    suspend fun insertReadings(readings: List<MeterReading>)
+
+    /** Deletes every meter (readings cascade). Used before restoring a backup. */
+    @Query("DELETE FROM meters")
+    suspend fun clearMeters()
+
+    /** Replaces all data with the supplied rows in a single transaction. */
+    @Transaction
+    suspend fun replaceAll(meters: List<Meter>, readings: List<MeterReading>) {
+        clearMeters()
+        insertMeters(meters)
+        insertReadings(readings)
+    }
 }

@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.diprish.utilitymeter.ui.backup.BackupScreen
 import com.diprish.utilitymeter.ui.detail.MeterDetailScreen
 import com.diprish.utilitymeter.ui.meters.MetersListScreen
 import com.diprish.utilitymeter.ui.reading.AddReadingScreen
@@ -13,6 +14,7 @@ import com.diprish.utilitymeter.ui.reading.AddReadingScreen
 private object Routes {
     const val METERS = "meters"
     const val METER_DETAIL = "meter/{meterId}"
+    const val BACKUP = "backup"
 
     /** Add/edit reading. readingId = -1 means "new reading". */
     const val READING = "meter/{meterId}/reading?readingId={readingId}"
@@ -30,7 +32,12 @@ fun UtilityMeterNavGraph() {
         composable(Routes.METERS) {
             MetersListScreen(
                 onOpenMeter = { meterId -> navController.navigate(Routes.detail(meterId)) },
+                onOpenBackup = { navController.navigate(Routes.BACKUP) },
             )
+        }
+
+        composable(Routes.BACKUP) {
+            BackupScreen(onBack = { navController.popBackStack() })
         }
 
         composable(
