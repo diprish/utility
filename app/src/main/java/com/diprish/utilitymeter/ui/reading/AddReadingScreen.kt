@@ -122,7 +122,7 @@ fun AddReadingScreen(
                 cameraPermission.status.isGranted -> {
                     CameraCapture(
                         outputDirectory = photoDir,
-                        onImageCaptured = { file -> viewModel.onPhotoCaptured(context, file) },
+                        onImageCaptured = { file -> viewModel.onPhotoCaptured(file) },
                         onError = { manualEntry = true },
                         modifier = Modifier
                             .fillMaxWidth()

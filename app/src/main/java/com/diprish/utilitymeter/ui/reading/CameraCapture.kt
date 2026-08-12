@@ -8,6 +8,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,16 +17,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.diprish.utilitymeter.ocr.CaptureReticle
 import java.io.File
 import java.util.concurrent.Executor
 
@@ -64,6 +74,25 @@ fun CameraCapture(
             modifier = Modifier.fillMaxSize(),
         )
 
+        // Alignment reticle: everything outside the box is dimmed, and only
+        // this framed region is read by OCR.
+        ReticleOverlay(modifier = Modifier.fillMaxSize())
+
+        Surface(
+            color = Color.Black.copy(alpha = 0.55f),
+            contentColor = Color.White,
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 12.dp),
+        ) {
+            Text(
+                "Line up the meter's digits inside the box",
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        }
+
         FloatingActionButton(
             onClick = {
                 capturePhoto(context, outputDirectory, imageCapture, executor, onImageCaptured, onError)
@@ -74,6 +103,34 @@ fun CameraCapture(
         ) {
             Icon(Icons.Default.CameraAlt, contentDescription = "Capture reading")
         }
+    }
+}
+
+@Composable
+private fun ReticleOverlay(modifier: Modifier = Modifier) {
+    val scrim = Color.Black.copy(alpha = 0.5f)
+    Canvas(modifier = modifier) {
+        val left = size.width * CaptureReticle.LEFT
+        val top = size.height * CaptureReticle.TOP
+        val right = size.width * CaptureReticle.RIGHT
+        val bottom = size.height * CaptureReticle.BOTTOM
+        val boxWidth = right - left
+        val boxHeight = bottom - top
+
+        // Dim the four regions around the target box.
+        drawRect(scrim, topLeft = Offset(0f, 0f), size = Size(size.width, top))
+        drawRect(scrim, topLeft = Offset(0f, bottom), size = Size(size.width, size.height - bottom))
+        drawRect(scrim, topLeft = Offset(0f, top), size = Size(left, boxHeight))
+        drawRect(scrim, topLeft = Offset(right, top), size = Size(size.width - right, boxHeight))
+
+        // Bright border around the target box.
+        drawRoundRect(
+            color = Color.White,
+            topLeft = Offset(left, top),
+            size = Size(boxWidth, boxHeight),
+            cornerRadius = CornerRadius(12f, 12f),
+            style = Stroke(width = 3.dp.toPx()),
+        )
     }
 }
 

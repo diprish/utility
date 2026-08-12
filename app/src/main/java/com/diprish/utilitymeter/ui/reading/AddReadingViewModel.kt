@@ -1,7 +1,5 @@
 package com.diprish.utilitymeter.ui.reading
 
-import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -102,8 +100,8 @@ class AddReadingViewModel(
         _state.update { it.copy(timestamp = applyDatePickerMillis(pickedUtcMillis, it.timestamp)) }
     }
 
-    /** Called after the camera writes a photo. Kicks off OCR on the image. */
-    fun onPhotoCaptured(context: Context, file: File) {
+    /** Called after the camera writes a photo. Kicks off OCR on the framed region. */
+    fun onPhotoCaptured(file: File) {
         _state.update {
             it.copy(
                 photoPath = file.absolutePath,
@@ -114,7 +112,7 @@ class AddReadingViewModel(
         }
         viewModelScope.launch {
             try {
-                val result = MeterOcr.recognize(context, Uri.fromFile(file))
+                val result = MeterOcr.recognize(file)
                 _state.update { current ->
                     if (result.reading != null) {
                         current.copy(
@@ -125,7 +123,7 @@ class AddReadingViewModel(
                     } else {
                         current.copy(
                             ocrRunning = false,
-                            ocrMessage = "Couldn't read a number — type it in below.",
+                            ocrMessage = "No number found in the box — line up the digits and retake, or type it below.",
                         )
                     }
                 }

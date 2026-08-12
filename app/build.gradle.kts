@@ -76,6 +76,8 @@ dependencies {
 
     // ML Kit on-device text recognition
     implementation(libs.mlkit.text.recognition)
+    // Reads photo EXIF orientation so we crop the right region
+    implementation(libs.androidx.exifinterface)
 
     // Runtime permissions in Compose
     implementation(libs.accompanist.permissions)

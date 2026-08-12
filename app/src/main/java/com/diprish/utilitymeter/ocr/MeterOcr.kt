@@ -1,11 +1,16 @@
 package com.diprish.utilitymeter.ocr
 
-import android.content.Context
-import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import androidx.exifinterface.media.ExifInterface
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -13,7 +18,7 @@ import kotlin.coroutines.resumeWithException
  * Result of running OCR on a meter photo.
  *
  * @param reading the best-guess numeric reading, or null if nothing usable was found
- * @param rawText the full block of recognised text, useful for debugging / manual pick
+ * @param rawText the full block of recognised text inside the target box
  */
 data class OcrResult(
     val reading: Double?,
@@ -21,13 +26,12 @@ data class OcrResult(
 )
 
 /**
- * Runs Google ML Kit's on-device Latin text recognizer over a captured photo and
- * tries to pull out the meter reading.
+ * Google ML Kit on-device text recognition, restricted to the reticle region
+ * of the photo so only the framed meter digits are read — not serial numbers,
+ * tariff labels, or anything else visible in the frame.
  *
- * Meter displays vary a lot, so rather than trust a single line we collect every
- * numeric token in the image and pick the most "reading-like" one: the longest
- * run of digits (optionally with a decimal separator). The caller always shows
- * the value for confirmation before it is saved.
+ * The captured JPEG is loaded upright (respecting EXIF orientation), cropped to
+ * [CaptureReticle], and only that crop is handed to the recognizer.
  */
 object MeterOcr {
 
@@ -38,11 +42,39 @@ object MeterOcr {
     // Matches sequences such as 001234, 12345.6, 4 321 (spaces later stripped).
     private val numberRegex = Regex("""\d[\d.,\s]*\d|\d""")
 
-    suspend fun recognize(context: Context, photoUri: Uri): OcrResult {
-        val image = InputImage.fromFilePath(context, photoUri)
-        val text = recognizer.process(image).await()
+    suspend fun recognize(photoFile: File): OcrResult {
+        val crop = withContext(Dispatchers.IO) { loadReticleCrop(photoFile) }
+            ?: return OcrResult(reading = null, rawText = "")
+        val text = recognizer.process(InputImage.fromBitmap(crop, 0)).await()
         val candidates = extractCandidates(text.text)
         return OcrResult(reading = pickBest(candidates), rawText = text.text)
+    }
+
+    /** Loads the photo upright and crops it to the reticle band. */
+    private fun loadReticleCrop(file: File): Bitmap? {
+        val upright = loadUprightBitmap(file) ?: return null
+        val left = (upright.width * CaptureReticle.LEFT).toInt().coerceIn(0, upright.width - 1)
+        val top = (upright.height * CaptureReticle.TOP).toInt().coerceIn(0, upright.height - 1)
+        val right = (upright.width * CaptureReticle.RIGHT).toInt().coerceIn(left + 1, upright.width)
+        val bottom = (upright.height * CaptureReticle.BOTTOM).toInt().coerceIn(top + 1, upright.height)
+        return Bitmap.createBitmap(upright, left, top, right - left, bottom - top)
+    }
+
+    /** Decodes the JPEG and rotates it upright according to its EXIF orientation. */
+    private fun loadUprightBitmap(file: File): Bitmap? {
+        val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: return null
+        val orientation = ExifInterface(file.absolutePath).getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_NORMAL,
+        )
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            else -> return bitmap
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     /** Exposed for unit testing the number-selection heuristic. */
