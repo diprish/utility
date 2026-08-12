@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -125,7 +126,8 @@ fun AddReadingScreen(
                         onImageCaptured = { file -> viewModel.onPhotoCaptured(file) },
                         onError = { manualEntry = true },
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .align(Alignment.CenterHorizontally)
+                            .height(300.dp)
                             .aspectRatio(3f / 4f),
                     )
                     TextButton(
@@ -282,29 +284,31 @@ private fun disabledLooksEnabledColors() = androidx.compose.material3.OutlinedTe
 @Composable
 private fun CapturedPhoto(path: String, onRetake: () -> Unit) {
     val bitmap = remember(path) { android.graphics.BitmapFactory.decodeFile(path) }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(3f / 4f)
-            .clip(RoundedCornerShape(16.dp)),
-    ) {
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Captured meter photo",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        IconButton(
-            onClick = onRetake,
-            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .height(300.dp)
+                .aspectRatio(3f / 4f)
+                .clip(RoundedCornerShape(16.dp)),
         ) {
-            Icon(
-                Icons.Default.Refresh,
-                contentDescription = "Retake photo",
-                tint = MaterialTheme.colorScheme.onPrimary,
-            )
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Captured meter photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            IconButton(
+                onClick = onRetake,
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+            ) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = "Retake photo",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
         }
     }
 }
