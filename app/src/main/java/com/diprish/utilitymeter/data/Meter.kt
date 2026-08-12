@@ -17,4 +17,10 @@ data class Meter(
     /** Optional free-text location or note. */
     val location: String = "",
     val createdAt: Long = System.currentTimeMillis(),
+    /**
+     * Manual sort position for the list (ascending). New meters get a large
+     * negative value so they appear at the top; drag-to-reorder rewrites all
+     * positions to 0..n-1.
+     */
+    val position: Long = 0,
 )

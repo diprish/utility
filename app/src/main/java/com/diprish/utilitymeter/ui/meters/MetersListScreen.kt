@@ -37,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diprish.utilitymeter.data.MeterWithStats
@@ -56,6 +58,10 @@ import com.diprish.utilitymeter.ui.components.ReadingThumbnail
 import com.diprish.utilitymeter.ui.formatDate
 import com.diprish.utilitymeter.ui.formatNumber
 import com.diprish.utilitymeter.ui.meterVisual
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
+import org.burnoutcrew.reorderable.reorderable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +71,18 @@ fun MetersListScreen(
 ) {
     val meters by viewModel.meters.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+
+    // Local, reorderable copy kept in sync with the database order. Drag updates
+    // this immediately for smooth feedback; onDragEnd persists the new order.
+    var localOrder by remember { mutableStateOf(meters) }
+    LaunchedEffect(meters) { localOrder = meters }
+
+    val reorderState = rememberReorderableLazyListState(
+        onMove = { from, to ->
+            localOrder = localOrder.toMutableList().apply { add(to.index, removeAt(from.index)) }
+        },
+        onDragEnd = { _, _ -> viewModel.persistOrder(localOrder) },
+    )
 
     Scaffold(
         topBar = { CenterAlignedTopAppBar(title = { Text("Utility Meter") }) },
@@ -76,11 +94,12 @@ fun MetersListScreen(
             )
         },
     ) { padding ->
-        if (meters.isEmpty()) {
+        if (localOrder.isEmpty()) {
             EmptyState(Modifier.fillMaxSize().padding(padding))
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                state = reorderState.listState,
+                modifier = Modifier.fillMaxSize().reorderable(reorderState),
                 contentPadding = PaddingValues(
                     top = padding.calculateTopPadding() + 8.dp,
                     bottom = padding.calculateBottomPadding() + 96.dp,
@@ -89,12 +108,16 @@ fun MetersListScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                items(meters, key = { it.meter.id }) { item ->
-                    MeterCard(
-                        item = item,
-                        onClick = { onOpenMeter(item.meter.id) },
-                        onDelete = { viewModel.deleteMeter(item.meter) },
-                    )
+                items(localOrder, key = { it.meter.id }) { item ->
+                    ReorderableItem(reorderState, key = item.meter.id) { isDragging ->
+                        MeterCard(
+                            item = item,
+                            onClick = { onOpenMeter(item.meter.id) },
+                            onDelete = { viewModel.deleteMeter(item.meter) },
+                            elevation = if (isDragging) 10.dp else 2.dp,
+                            modifier = Modifier.detectReorderAfterLongPress(reorderState),
+                        )
+                    }
                 }
             }
         }
@@ -116,13 +139,15 @@ private fun MeterCard(
     item: MeterWithStats,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+    elevation: Dp = 2.dp,
 ) {
     val visual = meterVisual(item.meter.type)
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
     ) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
             // Accent stripe down the leading edge for a splash of type colour.

@@ -22,6 +22,8 @@ class MeterRepository(private val dao: MeterDao) {
 
     suspend fun updateMeter(meter: Meter) = dao.updateMeter(meter)
 
+    suspend fun updateMeters(meters: List<Meter>) = dao.updateMeters(meters)
+
     suspend fun deleteMeter(meter: Meter) = dao.deleteMeter(meter)
 
     suspend fun addReading(reading: MeterReading): Long = dao.insertReading(reading)

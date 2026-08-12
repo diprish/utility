@@ -82,6 +82,9 @@ dependencies {
     // Runtime permissions in Compose
     implementation(libs.accompanist.permissions)
 
+    // Drag-to-reorder for the meter list
+    implementation(libs.reorderable)
+
     debugImplementation(libs.androidx.ui.tooling)
 
     testImplementation(libs.junit)

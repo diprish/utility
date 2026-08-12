@@ -26,6 +26,9 @@ interface MeterDao {
     @Update
     suspend fun updateMeter(meter: Meter)
 
+    @Update
+    suspend fun updateMeters(meters: List<Meter>)
+
     @Delete
     suspend fun deleteMeter(meter: Meter)
 
@@ -42,7 +45,7 @@ interface MeterDao {
         FROM meters m
         LEFT JOIN readings r ON r.meterId = m.id
         GROUP BY m.id
-        ORDER BY m.createdAt DESC
+        ORDER BY m.position ASC
         """
     )
     fun observeMetersWithStats(): Flow<List<MeterWithStats>>

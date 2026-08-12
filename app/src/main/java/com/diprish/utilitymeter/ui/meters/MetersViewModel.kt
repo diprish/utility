@@ -33,6 +33,9 @@ class MetersViewModel(private val repository: MeterRepository) : ViewModel() {
                     type = type,
                     unit = unit.trim().ifEmpty { type.defaultUnit },
                     location = location.trim(),
+                    // Negative time => sorts before reordered meters (0..n-1), so
+                    // a freshly added meter shows up at the top of the list.
+                    position = -System.currentTimeMillis(),
                 )
             )
         }
@@ -40,6 +43,15 @@ class MetersViewModel(private val repository: MeterRepository) : ViewModel() {
 
     fun deleteMeter(meter: Meter) {
         viewModelScope.launch { repository.deleteMeter(meter) }
+    }
+
+    /** Persist a new manual ordering by writing each meter's list index as its position. */
+    fun persistOrder(ordered: List<MeterWithStats>) {
+        viewModelScope.launch {
+            repository.updateMeters(
+                ordered.mapIndexed { index, item -> item.meter.copy(position = index.toLong()) }
+            )
+        }
     }
 
     companion object {
