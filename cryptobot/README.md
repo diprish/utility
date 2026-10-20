@@ -11,6 +11,7 @@ cryptobot fetch BTC-USD --days 365 --out candles.csv     # public data, no API k
 cryptobot backtest candles.csv --strategy buy-and-hold   # fees + slippage included
 cryptobot backtest candles.csv --strategy sma-crossover --params fast=20,slow=100
 cryptobot run BTC-USD --strategy flat                    # DRY RUN on a paper account
+cryptobot project --start 10 --deposit 20 --years 3      # what a given return does to your balance, after fees
 pytest
 ```
 

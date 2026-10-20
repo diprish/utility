@@ -36,6 +36,25 @@ def cmd_backtest(a):
     print(res.summary())
 
 
+def cmd_project(a):
+    from .projection import net_annual_return, project, weekly_target
+
+    gross = [float(x) / 100 for x in a.gross.split(",")]
+    cols = [(g, net_annual_return(g, a.fee, a.round_trips)) for g in gross]
+    print(f"Start {a.start:,.2f} {a.currency}, +{a.deposit:,.2f}/month, fee {a.fee:.2%} per side, "
+          f"{a.round_trips:g} round trips/year\n")
+    print(f"{'gross/yr':>9s} {'net/yr':>8s} " + " ".join(f"{'year ' + str(y):>12s}" for y in range(1, a.years + 1)))
+    for g, net in cols:
+        row = project(a.start, a.deposit, net, a.years)
+        print(f"{g:9.0%} {net:8.1%} " + " ".join(f"{v:12,.2f}" for v in row))
+    deposited = a.start + a.deposit * 12 * a.years
+    print(f"\n(total put in over {a.years} years: {deposited:,.2f} {a.currency})")
+    w = weekly_target(a.start, 0.10, 52)
+    print(f"For comparison, 10%/week for one year would turn {a.start:,.2f} into {w:,.2f} "
+          f"({w / a.start:,.0f}x); after two years {weekly_target(a.start, 0.10, 104):,.0f}. "
+          f"No strategy has delivered this.")
+
+
 def cmd_run(a):
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     limits = RiskLimits(a.max_position, a.max_order, a.max_daily_loss)
@@ -74,6 +93,16 @@ def main(argv=None):
     b.add_argument("--granularity", **gran)
     b.add_argument("--fee", type=float, default=0.006)
     b.set_defaults(fn=cmd_backtest)
+
+    j = sub.add_parser("project", help="what a given annual return does to your balance, after fees")
+    j.add_argument("--start", type=float, default=10.0)
+    j.add_argument("--deposit", type=float, default=0.0, help="added every month")
+    j.add_argument("--years", type=int, default=5)
+    j.add_argument("--gross", default="0,10,25,50,100", help="gross annual returns in %%, comma separated")
+    j.add_argument("--fee", type=float, default=0.012, help="fee per side, check your Coinbase tier")
+    j.add_argument("--round-trips", type=float, default=12, help="buy+sell pairs per year")
+    j.add_argument("--currency", default="CAD")
+    j.set_defaults(fn=cmd_project)
 
     r = sub.add_parser("run", help="trade in real time (dry-run unless --live)")
     r.add_argument("product")

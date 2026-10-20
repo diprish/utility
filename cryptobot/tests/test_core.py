@@ -141,3 +141,12 @@ def test_portfolio_momentum_holds_winner_and_goes_to_cash():
     r2 = backtest_portfolio({"DOWN": down}, alloc2, rebalance_every=10, warmup=60,
                             fee_rate=0.0, slippage=0.0, benchmark="DOWN")
     assert r2.trades == 0 and r2.total_return == 0
+
+
+def test_projection_math():
+    from cryptobot.projection import net_annual_return, project, weekly_target
+
+    assert project(100, 0, 0.10, 2)[-1] == pytest.approx(121.0)
+    assert project(0, 10, 0.0, 1)[-1] == pytest.approx(120.0)
+    assert net_annual_return(0.0, 0.01, 12) < 0  # fees alone shrink the balance
+    assert weekly_target(10, 0.10, 52) == pytest.approx(10 * 1.1**52)
