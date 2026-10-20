@@ -1,0 +1,24 @@
+[project]
+name = "cryptobot"
+version = "0.1.0"
+description = "Coinbase spot trading bot with a pluggable strategy interface, backtester and dry-run mode"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+live = ["PyJWT>=2.8", "cryptography>=42"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+cryptobot = "cryptobot.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
