@@ -51,9 +51,9 @@ class Precomputed(Strategy):
         return self.pos[self.offset + self.i]
 
 
-def run(pos, candles, split):
+def run(pos, candles, split, fee=0.006, slip=0.0005):
     test = candles[split:]
-    r = backtest(test, Precomputed(pos, split))
+    r = backtest(test, Precomputed(pos, split), fee_rate=fee, slippage=slip)
     return r
 
 
@@ -62,6 +62,8 @@ def main():
     ap.add_argument("wiring")
     ap.add_argument("csv")
     ap.add_argument("--seeds", type=int, default=5)
+    ap.add_argument("--fee", type=float, default=0.006)
+    ap.add_argument("--slippage", type=float, default=0.0005)
     a = ap.parse_args()
 
     candles = load_csv(a.csv)
@@ -71,11 +73,11 @@ def main():
     print(f"{a.csv}: {len(candles)} candles, test = last {len(candles) - split}; "
           f"reservoir N={W.shape[0]}, {W.nnz} edges, {n_in} input nodes\n")
 
-    bh = backtest(candles[split:], BuyAndHold())
+    bh = backtest(candles[split:], BuyAndHold(), fee_rate=a.fee, slippage=a.slippage)
     rows = {"buy & hold": [(bh.total_return, bh.sharpe, bh.max_drawdown, bh.trades)]}
 
     def add(name, pos):
-        r = run(pos, candles, split)
+        r = run(pos, candles, split, a.fee, a.slippage)
         rows.setdefault(name, []).append((r.total_return, r.sharpe, r.max_drawdown, r.trades))
 
     # plain linear model on the raw (unreserved) features, for reference
