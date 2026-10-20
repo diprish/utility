@@ -31,6 +31,22 @@ class BacktestResult:
         )
 
 
+def risk_stats(equity: Sequence[float], initial_cash: float, periods_per_year: float) -> tuple[float, float]:
+    """Return (annualised Sharpe, max drawdown) for an equity curve."""
+    rets = [equity[0] / initial_cash - 1] + [
+        equity[k] / equity[k - 1] - 1 for k in range(1, len(equity))
+    ]
+    mean = sum(rets) / len(rets)
+    var = sum((r - mean) ** 2 for r in rets) / max(1, len(rets) - 1)
+    sharpe = mean / math.sqrt(var) * math.sqrt(periods_per_year) if var > 0 else 0.0
+
+    peak, max_dd = initial_cash, 0.0
+    for e in equity:
+        peak = max(peak, e)
+        max_dd = max(max_dd, (peak - e) / peak)
+    return sharpe, max_dd
+
+
 def backtest(
     candles: Sequence[Candle],
     strategy: Strategy,
@@ -78,17 +94,7 @@ def backtest(
                 trades += 1
         equity.append(cash + units * nxt.close)
 
-    rets = [equity[0] / initial_cash - 1] + [
-        equity[k] / equity[k - 1] - 1 for k in range(1, len(equity))
-    ]
-    mean = sum(rets) / len(rets)
-    var = sum((r - mean) ** 2 for r in rets) / max(1, len(rets) - 1)
-    sharpe = mean / math.sqrt(var) * math.sqrt(periods_per_year) if var > 0 else 0.0
-
-    peak, max_dd = initial_cash, 0.0
-    for e in equity:
-        peak = max(peak, e)
-        max_dd = max(max_dd, (peak - e) / peak)
+    sharpe, max_dd = risk_stats(equity, initial_cash, periods_per_year)
 
     return BacktestResult(
         equity=equity,

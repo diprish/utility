@@ -93,3 +93,51 @@ def test_sma_crossover_signals():
     assert s.target_position(candles([4, 3, 2, 1])) == 0.0  # downtrend
     with pytest.raises(ValueError):
         SmaCrossover(fast=5, slow=5)
+
+
+def test_throttled_limits_flipping():
+    from cryptobot.strategy import Throttled
+
+    class Flip(Strategy):
+        lookback = 1
+        n = 0
+
+        def target_position(self, history):
+            self.n += 1
+            return float(self.n % 2)  # flips every bar
+
+    t = Throttled(Flip(), band=0.5, cooldown=3)
+    out = [t.target_position(candles([1])) for _ in range(12)]
+    assert sum(1 for a, b in zip(out, out[1:]) if a != b) < 6  # far fewer than 11 flips
+    # exits are never delayed by the cooldown
+    t2 = Throttled(BuyAndHold(), band=0.5, cooldown=100)
+    assert t2.target_position(candles([1])) == 1.0
+
+
+def test_vol_target_scales_down():
+    from cryptobot.strategy import VolTarget
+
+    calm = candles([100 + 0.1 * i for i in range(50)])
+    wild = candles([100 * (1.1 if i % 2 else 0.9) for i in range(50)])
+    s = VolTarget(BuyAndHold(), target_vol=0.5, window=30)
+    assert s.target_position(calm) == pytest.approx(1.0)
+    assert 0 < s.target_position(wild) < 0.5
+
+
+def test_portfolio_momentum_holds_winner_and_goes_to_cash():
+    from cryptobot.portfolio import backtest_portfolio, momentum_rotation
+
+    n = 400
+    up = candles([100 * 1.004**i for i in range(n)])
+    flat = candles([100.0] * n)
+    alloc = momentum_rotation(lookback=20, top_k=1, market="UP", market_sma=50, target_vol=None)
+    r = backtest_portfolio({"UP": up, "FLAT": flat}, alloc, rebalance_every=10, warmup=60,
+                           fee_rate=0.0, slippage=0.0, benchmark="UP")
+    assert r.total_return > 0.5
+    assert r.trades >= 1
+    # market filter: a falling market means nothing is ever bought
+    down = candles([100 * 0.995**i for i in range(n)])
+    alloc2 = momentum_rotation(lookback=20, top_k=1, market="DOWN", market_sma=50, target_vol=None)
+    r2 = backtest_portfolio({"DOWN": down}, alloc2, rebalance_every=10, warmup=60,
+                            fee_rate=0.0, slippage=0.0, benchmark="DOWN")
+    assert r2.trades == 0 and r2.total_return == 0

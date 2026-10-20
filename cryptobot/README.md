@@ -40,3 +40,13 @@ Safety rails (flags on `run`): `--max-position`, `--max-order`, `--max-daily-los
 directory halts the bot on the next cycle. Orders are market IOC, one per closed candle.
 
 Not financial advice. Trading can lose money; start with amounts you can afford to lose.
+
+## Fee-aware tools
+
+- `Throttled(strategy, band, cooldown)` and `VolTarget(strategy, target_vol)` wrap any strategy
+  to cut turnover / size positions by volatility.
+- `portfolio.py`: multi-coin backtester and `momentum_rotation` (monthly, top-k by trailing
+  return, BTC trend filter, rank buffer, volatility-scaled).
+- `scripts/evaluate_fee_aware.py DIR` compares them with buy & hold on a folder of daily CSVs
+  (`cryptobot fetch BTC-USD --days 2500 --out DIR/BTC-USD.csv`, one file per coin).
+  The coins are today's survivors, which flatters anything that holds them.

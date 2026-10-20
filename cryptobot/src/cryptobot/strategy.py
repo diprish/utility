@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from abc import ABC, abstractmethod
 from typing import Sequence
 
@@ -51,6 +52,57 @@ class SmaCrossover(Strategy):
         fast_ma = sum(closes[-self.fast :]) / self.fast
         slow_ma = sum(closes) / self.slow
         return 1.0 if fast_ma > slow_ma else 0.0
+
+
+class VolTarget(Strategy):
+    """Scale another strategy's position down when recent volatility exceeds `target_vol`
+    (annualised). Never levers up: the position stays within 0..1."""
+
+    def __init__(self, inner: Strategy, target_vol: float = 0.6, window: int = 30,
+                 periods_per_year: float = 365.0, step: float = 0.25):
+        self.inner, self.target_vol, self.window, self.ppy = inner, target_vol, window, periods_per_year
+        self.step = step  # sizes snap down to multiples of this, so tiny vol moves cause no trades
+        self.lookback = max(inner.lookback, window + 1)
+
+    def target_position(self, history: Sequence[Candle]) -> float:
+        want = self.inner.target_position(history[-self.inner.lookback :])
+        if want <= 0 or len(history) <= self.window:
+            return 0.0  # flat, or not enough history to size a position
+        closes = [c.close for c in history[-self.window - 1 :]]
+        rets = [math.log(b / a) for a, b in zip(closes, closes[1:])]
+        mean = sum(rets) / len(rets)
+        vol = math.sqrt(sum((r - mean) ** 2 for r in rets) / (len(rets) - 1)) * math.sqrt(self.ppy)
+        if vol <= 0:
+            return want
+        scale = min(1.0, self.target_vol / vol)
+        if self.step:
+            scale = max(self.step, math.floor(scale / self.step) * self.step)
+        return want * scale
+
+
+class Throttled(Strategy):
+    """Cut turnover of another strategy.
+
+    - band: ignore target changes smaller than this fraction of equity.
+    - cooldown: after any change, don't *increase* the position for this many bars
+      (reductions are always allowed, so the strategy can still exit promptly).
+
+    Stateful: keep one instance for the life of a run (the runner and backtester do).
+    """
+
+    def __init__(self, inner: Strategy, band: float = 0.25, cooldown: int = 7):
+        self.inner, self.band, self.cooldown = inner, band, cooldown
+        self.lookback = inner.lookback
+        self.current = 0.0
+        self.since_change = cooldown
+
+    def target_position(self, history: Sequence[Candle]) -> float:
+        want = self.inner.target_position(history)
+        self.since_change += 1
+        move = want - self.current
+        if abs(move) >= self.band and (move < 0 or self.since_change > self.cooldown):
+            self.current, self.since_change = want, 0
+        return self.current
 
 
 STRATEGIES: dict[str, type[Strategy]] = {
