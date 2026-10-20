@@ -82,3 +82,14 @@ def test_kill_switch_and_daily_loss(tmp_path):
     kill.write_text("")
     with pytest.raises(Halt):
         step(broker, Flat(), candles([100]), 100.0, limits, day_start_equity=1000)
+
+
+def test_sma_crossover_signals():
+    from cryptobot.strategy import SmaCrossover
+
+    s = SmaCrossover(fast=2, slow=4)
+    assert s.target_position(candles([1, 1, 1])) == 0.0  # not enough history
+    assert s.target_position(candles([1, 2, 3, 4])) == 1.0  # uptrend
+    assert s.target_position(candles([4, 3, 2, 1])) == 0.0  # downtrend
+    with pytest.raises(ValueError):
+        SmaCrossover(fast=5, slow=5)

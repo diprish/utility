@@ -15,10 +15,11 @@ from .runner import run_loop
 from .strategy import STRATEGIES
 
 
-def _strategy(name: str):
+def _strategy(name: str, params: str = ""):
     if name not in STRATEGIES:
         sys.exit(f"unknown strategy '{name}'; choose from {', '.join(STRATEGIES)}")
-    return STRATEGIES[name]()
+    kwargs = {k: int(v) for k, v in (kv.split("=") for kv in params.split(",") if kv)}
+    return STRATEGIES[name](**kwargs)
 
 
 def cmd_fetch(a):
@@ -31,7 +32,7 @@ def cmd_fetch(a):
 def cmd_backtest(a):
     candles = load_csv(a.csv)
     ppy = 365 * 86400 / GRANULARITY_SECONDS[a.granularity]
-    res = backtest(candles, _strategy(a.strategy), fee_rate=a.fee, periods_per_year=ppy)
+    res = backtest(candles, _strategy(a.strategy, a.params), fee_rate=a.fee, periods_per_year=ppy)
     print(res.summary())
 
 
@@ -47,7 +48,7 @@ def cmd_run(a):
         broker = PaperBroker(cash=a.paper_cash)
         print(f"DRY RUN (paper account, no orders sent) on {a.product}")
     try:
-        run_loop(broker, _strategy(a.strategy), a.product, a.granularity, limits)
+        run_loop(broker, _strategy(a.strategy, a.params), a.product, a.granularity, limits)
     except Halt as h:
         sys.exit(f"HALTED: {h}")
     except KeyboardInterrupt:
@@ -69,6 +70,7 @@ def main(argv=None):
     b = sub.add_parser("backtest", help="replay a strategy over a CSV")
     b.add_argument("csv")
     b.add_argument("--strategy", default="buy-and-hold")
+    b.add_argument("--params", default="", help="integer strategy params, e.g. fast=20,slow=100")
     b.add_argument("--granularity", **gran)
     b.add_argument("--fee", type=float, default=0.006)
     b.set_defaults(fn=cmd_backtest)
@@ -76,6 +78,7 @@ def main(argv=None):
     r = sub.add_parser("run", help="trade in real time (dry-run unless --live)")
     r.add_argument("product")
     r.add_argument("--strategy", default="flat")
+    r.add_argument("--params", default="", help="integer strategy params, e.g. fast=20,slow=100")
     r.add_argument("--granularity", **gran)
     r.add_argument("--live", action="store_true", help="send real orders to Coinbase")
     r.add_argument("--paper-cash", type=float, default=1000.0)

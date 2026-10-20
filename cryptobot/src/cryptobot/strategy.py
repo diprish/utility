@@ -35,4 +35,26 @@ class BuyAndHold(Strategy):
         return 1.0
 
 
-STRATEGIES: dict[str, type[Strategy]] = {"flat": Flat, "buy-and-hold": BuyAndHold}
+class SmaCrossover(Strategy):
+    """Fully long while the fast simple moving average is above the slow one, else flat."""
+
+    def __init__(self, fast: int = 20, slow: int = 100):
+        if not 0 < fast < slow:
+            raise ValueError("need 0 < fast < slow")
+        self.fast, self.slow = fast, slow
+        self.lookback = slow
+
+    def target_position(self, history: Sequence[Candle]) -> float:
+        if len(history) < self.slow:
+            return 0.0
+        closes = [c.close for c in history[-self.slow :]]
+        fast_ma = sum(closes[-self.fast :]) / self.fast
+        slow_ma = sum(closes) / self.slow
+        return 1.0 if fast_ma > slow_ma else 0.0
+
+
+STRATEGIES: dict[str, type[Strategy]] = {
+    "flat": Flat,
+    "buy-and-hold": BuyAndHold,
+    "sma-crossover": SmaCrossover,
+}

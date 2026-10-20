@@ -9,6 +9,7 @@ Pure standard library except for live trading (`pip install '.[live]'`).
 pip install -e '.[dev]'
 cryptobot fetch BTC-USD --days 365 --out candles.csv     # public data, no API key
 cryptobot backtest candles.csv --strategy buy-and-hold   # fees + slippage included
+cryptobot backtest candles.csv --strategy sma-crossover --params fast=20,slow=100
 cryptobot run BTC-USD --strategy flat                    # DRY RUN on a paper account
 pytest
 ```
