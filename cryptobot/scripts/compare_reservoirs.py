@@ -32,8 +32,9 @@ def evaluate(make_states, candles, split, label):
     U, y = features(candles), next_return(candles)
     X = design(make_states(U))
     tr = slice(WASHOUT, split - 1)
-    alpha = pick_alpha(X[tr], y[tr])
-    w = fit_ridge(X[tr], y[tr], alpha)
+    y_tr = y[tr] - y[tr].mean()  # demean, else the model just learns the drift and stays long
+    alpha = pick_alpha(X[tr], y_tr)
+    w = fit_ridge(X[tr], y_tr, alpha)
     pos = (X @ w > 0).astype(float)
     return w, pos
 
